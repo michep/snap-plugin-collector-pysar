@@ -1,4 +1,6 @@
 import socket
+import re
+import time
 import subprocess as sp
 import snap_plugin.v1 as snap
 from sar import parser
@@ -37,6 +39,8 @@ class SarCollector(snap.Collector):
 
     def collect(self, metrics):
         outmetrics = []
+        retmetrics = []
+        ts_now = time.time()
 
         self.output = self._updatemetrics()
 
@@ -58,9 +62,15 @@ class SarCollector(snap.Collector):
                     metric.namespace.add_static_element(parameter.lower())
                     metric.data = values[parameter]
                     metric.tags['host'] = self.hostname
+                    metric.timestamp = ts_now
                     outmetrics.append(metric)
 
-        return outmetrics
+        for mt in metrics:
+            matching = lookup_metric_by_namespace(mt, outmetrics)
+            if len(matching):
+                retmetrics.extend(matching)
+
+        return retmetrics
 
     def get_config_policy(self):
         return snap.ConfigPolicy()
@@ -84,3 +94,16 @@ def namespace2str(ns, verb = False):
         else:
             st = st + '/' + e.value
     return st
+
+
+def lookup_metric_by_namespace(lookupmetric, metrics):
+    ret = []
+    lookupns = namespace2str(lookupmetric.namespace)
+    lookupns = lookupns.replace('/', '\/').replace('*', '.*')
+    nsre = re.compile(lookupns)
+    for met in metrics:
+        ns = namespace2str(met.namespace)
+        match = nsre.search(ns)
+        if match:
+            ret.append(met)
+    return ret
