@@ -17,41 +17,50 @@ class SarCollector(snap.Collector):
         self.output = self._updatemetrics()
 
         for name in self.output:
-            if name == 'CPU':
-                values = self.output[name].values()[0]['all']
-            else:
-                values = self.output[name].values()[0]
-            for parameter in values:
-                metric = snap.Metric()
-                metric.namespace.add_static_element('mfms')
-                metric.namespace.add_static_element('sar')
-                metric.namespace.add_static_element(name.lower())
-                metric.namespace.add_static_element(parameter.lower())
-                metrics.append(metric)
+            enums = self.output[name].values()[0]
+            for enum in enums:
+                values = enums[enum]
+                for parameter in values:
+                    metric = snap.Metric()
+                    metric.namespace.add_static_element('mfms')
+                    metric.namespace.add_static_element('sar')
+                    metric.namespace.add_static_element(name.lower())
+                    if name == 'CPU':
+                        metric.namespace.add_dynamic_element("cpu_id", "CPU ID")
+                    if name == 'IFACE':
+                        metric.namespace.add_dynamic_element("iface_id", "IFACE ID")
+                    metric.namespace.add_static_element(parameter.lower())
+                    metrics.append(metric)
+                break
 
         return metrics
 
-    def collect(self, config):
-        metrics = []
+    def collect(self, metrics):
+        outmetrics = []
 
         self.output = self._updatemetrics()
 
         for name in self.output:
-            if name == 'CPU':
-                values = self.output[name].values()[0]['all']
-            else:
-                values = self.output[name].values()[0]
-            for valuename in values:
-                metric = snap.Metric()
-                metric.namespace.add_static_element('mfms')
-                metric.namespace.add_static_element('sar')
-                metric.namespace.add_static_element(name.lower())
-                metric.namespace.add_static_element(valuename.lower())
-                metric.data = values[valuename]
-                metric.tags['host'] = self.hostname
-                metrics.append(metric)
+            enums = self.output[name].values()[0]
+            for enum in enums:
+                values = enums[enum]
+                for parameter in values:
+                    metric = snap.Metric()
+                    metric.namespace.add_static_element('mfms')
+                    metric.namespace.add_static_element('sar')
+                    metric.namespace.add_static_element(name.lower())
+                    if name == 'CPU':
+                        metric.namespace.add_dynamic_element("cpu_id", "CPU ID")
+                        metric.namespace[3].value = enum
+                    if name == 'IFACE':
+                        metric.namespace.add_dynamic_element("iface_id", "IFACE ID")
+                        metric.namespace[3].value = enum
+                    metric.namespace.add_static_element(parameter.lower())
+                    metric.data = values[parameter]
+                    metric.tags['host'] = self.hostname
+                    outmetrics.append(metric)
 
-        return metrics
+        return outmetrics
 
     def get_config_policy(self):
         return snap.ConfigPolicy()
@@ -65,3 +74,13 @@ class SarCollector(snap.Collector):
         chunks = sar._split_file(stdout)
         output = sar._parse_file(chunks)
         return output
+
+
+def namespace2str(ns, verb = False):
+    st = ''
+    for e in ns:
+        if verb:
+            st = (st + '/' + "[" + e.name + "]") if e.name else (st + '/' + e.value)
+        else:
+            st = st + '/' + e.value
+    return st
