@@ -1,4 +1,4 @@
-from snap-pysar import SarCollector
+from snap_pysar import SarCollector
 
 
 def run():
