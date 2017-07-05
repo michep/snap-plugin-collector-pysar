@@ -94,7 +94,7 @@ class SarCollector(snap.Collector):
     def lookup_metric_by_namespace(self, lookupmetric, metrics):
         ret = []
         lookupns = self.namespace2str(lookupmetric.namespace)
-        lookupns = lookupns.replace('/', '\/').replace('*', '.*')
+        lookupns = lookupns.replace('/', '\/').replace('*', '.*') + '$'
         nsre = re.compile(lookupns)
         for met in metrics:
             ns = self.namespace2str(met.namespace)
