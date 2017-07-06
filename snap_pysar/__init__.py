@@ -42,7 +42,7 @@ class SarCollector(snap.Collector):
                 values = enums[enum]
                 for parameter in values:
                     metric = self.create_metric(name, parameter)
-                    if name == 'CPU' or name == 'IFACE':
+                    if name == 'CPU' or name == 'IFACE' or name == 'DEV':
                         metric.namespace[3].value = enum
                     metric.data = values[parameter]
                     metric.tags['host'] = self.hostname
@@ -60,7 +60,7 @@ class SarCollector(snap.Collector):
         return snap.ConfigPolicy()
 
     def get_sar_output(self):
-        proc = sp.Popen(['sar', '-A', '1', '1'], stdout=sp.PIPE) #TODO: check 'sar' availability
+        proc = sp.Popen(['sar', '-Ap', '1', '1'], stdout=sp.PIPE) #TODO: check 'sar' availability
         out = proc.stdout.read()
         stdout = out.encode('utf-8')
 
@@ -78,6 +78,8 @@ class SarCollector(snap.Collector):
             metric.namespace.add_dynamic_element("cpu_id", "CPU ID")
         if name == 'IFACE':
             metric.namespace.add_dynamic_element("iface_id", "IFACE ID")
+        if name == 'DEV':
+            metric.namespace.add_dynamic_element("dev_id", "DEV ID")
         metric.namespace.add_static_element(parameter.lower())
         return metric
 
