@@ -1,28 +1,11 @@
 #!/bin/bash
-
-#http://www.apache.org/licenses/LICENSE-2.0.txt
-#
-#
-#Copyright 2016 Intel Corporation
-#
-#Licensed under the Apache License, Version 2.0 (the "License");
-#you may not use this file except in compliance with the License.
-#You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-#Unless required by applicable law or agreed to in writing, software
-#distributed under the License is distributed on an "AS IS" BASIS,
-#WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#See the License for the specific language governing permissions and
-#limitations under the License.
-
 set -e
 set -u
 set -o pipefail
 
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __proj_dir="$(dirname "$__dir")"
+__proj_name="$(basename "$__proj_dir")"
 
 . "${__dir}/common.sh"
 
@@ -54,34 +37,29 @@ PATH="$PATH:${__proj_dir}/dist/acbuild-${acbuild_ver}"
 #$(pyenv prefix 2.7.5)/bin/pip install ${__proj_dir}
 
 _info "packaging ${__proj_dir}"
+
 _info "running: acbuild begin"
 acbuild begin
-_info "running: acbuild set-name snap-plugin-collector-pysar"
-acbuild set-name snap-plugin-collector-pysar
+
+_info "running: acbuild set-name ${__proj_name}"
+acbuild set-name ${__proj_name}
+
 _info "running: rsync $VIRTUAL_ENV .venv-relocatable -a --copy-links -v"
 rsync $VIRTUAL_ENV/ .venv-relocatable -q --delete -a --copy-links -v
+
 _info "running: acbuild copy $VIRTUAL_ENV .venv-relocatable"
 acbuild copy .venv-relocatable .venv
-_info "running: acbuild copy ${__proj_dir}/snap_pysar/plugin.py plugin.py"
-acbuild copy ${__proj_dir}/snap_pysar/plugin.py plugin.py
-_info "creating run.sh"
-cat <<EOF>run.sh
-#!/bin/bash
 
-DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}"  )" && pwd  )"
-LD_LIBRARY_PATH=\${DIR}/.venv/lib
-\${DIR}/.venv/bin/python plugin.py
-EOF
-chmod 755 run.sh
-_info "running: acbuild copy run.sh run.sh"
-acbuild copy run.sh run.sh
-_info "running: acbuild set-exec run.sh"
-acbuild set-exec run.sh
+_info "running: acbuild copy ${__proj_dir}/plugin.py plugin.py"
+acbuild copy ${__proj_dir}/plugin.py plugin.py
+
 _info "running: acbuild set-exec ./.venv/bin/python plugin"
 acbuild set-exec ./.venv/bin/python plugin.py
-_info "running: write ${__proj_dir}/dist/snap-plugin-collector-pysar/linux/${HOSTTYPE}/snap-plugin-collector-pysar-linux-x86_64.aci"
-mkdir -p "${__proj_dir}/dist/snap-plugin-collector-pysar/linux/${HOSTTYPE}"
-acbuild write ${__proj_dir}/dist/snap-plugin-collector-pysar/linux/${HOSTTYPE}/snap-plugin-collector-pysar-linux-x86_64.aci
+
+_info "running: write ${__proj_dir}/dist/${__proj_name}.aci"
+mkdir -p "${__proj_dir}/dist"
+acbuild write ${__proj_dir}/dist/${__proj_name}.aci
+
 #_info "running acbuild write ${__proj_dir}/dist/snap-plugin-collector-pysar/latest/linux/${HOSTTYPE}/snap-plugin-collector-pysar-linux-x86_64.aci"
 #mkdir -p "${__proj_dir}/dist/snap-plugin-collector-pysar/latest/linux/${HOSTTYPE}"
 #acbuild write ${__proj_dir}/dist/snap-plugin-collector-pysar/latest/linux/${HOSTTYPE}/snap-plugin-collector-pysar-linux-x86_64.aci
