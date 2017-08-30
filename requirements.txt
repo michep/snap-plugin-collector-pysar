@@ -1,0 +1,2 @@
+snap-plugin-lib-py
+git+https://github.com/michep/python-sar@patch
